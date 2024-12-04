@@ -1,3 +1,4 @@
+# I know that this code is not optimized but it works and that is what i need.
 import os
 import struct
 import json
@@ -165,7 +166,6 @@ class Sogna:
         offset += 1
         end_sequence = b'\x01\x00\x00\x00\x00\x02\x80\x02\x90'
 
-        # Find the last occurrence of the sequence
         last_occurrence = content.rfind(end_sequence)
         if last_occurrence == -1:
             print("Sequence b'\x01\x00\x00\x00\x00\x02\x80\x02\x90' not found. Exiting...")
@@ -178,7 +178,6 @@ class Sogna:
 
         extracted_data_offset = offset - 1
 
-        # Update the content with the extracted data
         modified_content.extend(extracted_data)
         modified_content[extracted_data_offset: extracted_data_offset + 3] = struct.pack('<BH', 0x14, content_length)
         modified_content.extend(struct.pack('<BH', 0x14, last_occurrence ))
@@ -272,11 +271,9 @@ class Sogna:
 
     def replace_text_in_binary(self, binary_file_path, json_file_path, output_file_path):
         try:
-            # Read the JSON data
             with open(json_file_path, 'r', encoding='utf-8') as json_file:
                 replacements = json.load(json_file)
             
-            # Read the binary file
             with open(binary_file_path, 'rb') as binary_file:
                 binary_data = bytearray(binary_file.read())
             
@@ -295,7 +292,6 @@ class Sogna:
                     offset = replacement.get('offset', 'unknown')
                     trans_bytes = trans_bytes if trans_bytes else orig_bytes
                     
-                    # Limit trans_bytes to original length
                     trans_bytes = trans_bytes[:len(trans_bytes)]
                     
                     found_index = None
@@ -305,10 +301,8 @@ class Sogna:
                             break
                     
                     if found_index is not None:
-                        # Replace the text
                         binary_data[found_index:found_index+len(orig_bytes)] = trans_bytes
-                        
-                        # Update offset based on replacement conditions
+                    
                         if binary_data[found_index - 1] == 0x21:
                             binary_data[offset: offset + 3] = struct.pack("<BH", 0x14, found_index - 1)
                         elif binary_data[found_index - 3] == 0x21:
@@ -317,8 +311,7 @@ class Sogna:
                             binary_data[offset: offset + 3] = struct.pack("<BH", 0x14, found_index - 8)
                         else:
                             continue
-                        
-                        # Track modification
+      
                         modifications.append({
                             'original_offset': replacement.get('offset', 'Unknown'),
                             'new_offset': found_index,
@@ -326,13 +319,11 @@ class Sogna:
                             'translated_text': replacement['trans']
                         })
                         
-                        # Update search_start to continue from after this replacement
                         search_start = found_index + len(trans_bytes)
                 
                 except UnicodeEncodeError as e:
                     print(f"Encoding error for text: {replacement['orig']} - {e}")
             
-            # Write modified binary data
             with open(output_file_path, 'wb') as output_file:
                 output_file.write(binary_data)
             
@@ -381,7 +372,6 @@ class Sogna:
 
     def linebreak(self, item):
         def insert_linebreaks(text, max_length = 54):
-            # Ensure the text will be broken at word boundaries
             words = text.split()
             lines = []
             current_line = []
@@ -404,7 +394,6 @@ class Sogna:
             
             return '\n'.join(lines)
 
-        # Only process if translation is longer than 54 characters
         if len(item['trans']) > 54 and '\n' not in item['trans']:
             item['trans'] = insert_linebreaks(item['trans'])
         
@@ -428,11 +417,9 @@ class Sogna:
             raise FileNotFoundError(f"Target DAT file '{self.target_dat_file}' not found.")
         
         with open(self.target_dat_file, 'rb') as f:
-            # Check file signature
             if self.signature != f.read(12):
                 raise Exception('Not a valid Sogna .DAT file')
 
-            # Read file count
             file_count = self.read_uint32(f, 12)
             index_offset = 0x10
 
